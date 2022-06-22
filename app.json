@@ -1,0 +1,12 @@
+{
+    "name": "Stables MC Update Bot",
+    "description": "A telegram bot to alert Daily Stables Market Cap Updates",
+    "repository": "https://github.com/savadam/stables_mc_bot",
+    "keywords": ["Crypto bot", "telegram crypto bot"],
+    "env" : {
+        "API_TOKEN" : {
+            "description": "Your telegram bot token which you can get from https://t.me/BotFather, Example : 5093659262:AAHoxxxxxxxxxxxxxxxx",
+            "required": true
+        }
+    }
+}
