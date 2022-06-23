@@ -23,7 +23,7 @@ server = Flask(__name__)
 def startPrivate(msg : types.Message):
     bot.send_message(
         msg.chat.id,
-        '<b>Welcome Stables MarketCap Update Bot\n\nFormat : /s usdt</b>'.format(msg.from_user.first_name),
+        '<b>Welcome Stables MarketCap Update Bot\n\nFormat : /s</b>'.format(msg.from_user.first_name),
         parse_mode='html',
         reply_to_message_id=msg.id,
         disable_web_page_preview=True
@@ -31,87 +31,81 @@ def startPrivate(msg : types.Message):
 
 @bot.message_handler(func= lambda msg : msg.text.startswith('/s'))
 def getPrice(msg):
-    symbol = msg.text.split('/s ')
-    if len(symbol) == 1:
-        bot.send_message(msg.chat.id, '*Example : /s usdt*', parse_mode='markdown', reply_to_message_id=msg.id)
-        return
-    try:
-        symbol_ = symbol[1].upper()
-        url = requests.get("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_rank&per_page=25")
-        coins_data = json.loads(url.text)
+    if len(msg.text) < 3:
+        try:        
+            stables = ['tether', 'usd-coin', 'binance-usd', 'dai']
+            for coin in stables:
+                url = requests.get("https://api.coingecko.com/api/v3/coins/" + coin)
+                data = json.loads(url.text)
 
-        for item in range(0, len(coins_data)):
-            if(coins_data[item]['symbol'] == symbol_.lower()):
-                token_id = coins_data[item]['id']
-                token_name = coins_data[item]['name']
-                market_cap = human_format(coins_data[item]['market_cap'])
+                token_id = data['id']
+                symbol = data['symbol']
+                token_name = data['name']
+                market_cap = human_format(data['market_data']['market_cap']['usd'])
+                mc_change = human_format(data['market_data']['market_cap_change_24h'])
+                mc_change_perc = human_format(data['market_data']['market_cap_change_percentage_24h'])
 
-        url = requests.get("https://api.coingecko.com/api/v3/coins/" + token_id)
-        data = json.loads(url.text)
-        mc_change = human_format(data['market_data']['market_cap_change_24h'])
-        mc_change_perc = human_format(data['market_data']['market_cap_change_percentage_24h'])
+                text_to_send = f'*{str(token_name)}* ({str(symbol).upper()})\n\n❇️ *Market Cap*: ${str(market_cap)}\n❇️ *MC Change*(24hr): {str(mc_change)}\n❇️ *% MC Change(24hr)*: {str(mc_change_perc)}%'
 
-        text_to_send = f'*{str(token_name)}* ({symbol_})\n\n❇️ *Market Cap*: ${str(market_cap)}\n❇️ *MC Change*(24hr): {str(mc_change)}\n❇️ *% MC Change(24hr)*: {str(mc_change_perc)}%'
+                url = requests.get("https://api.coingecko.com/api/v3/coins/" + str(token_id) + "/market_chart?vs_currency=usd&days=7")
+                data = json.loads(url.text)['market_caps']
 
-        url = requests.get("https://api.coingecko.com/api/v3/coins/" + str(token_id) + "/market_chart?vs_currency=usd&days=7")
-        data = json.loads(url.text)['market_caps']
+                tstamps = []
+                for item in range(0, len(data)):
+                    ts = int(data[item][0]/1000)
+                    tstamps.append(str(time.strftime("%b %d %H:%M", time.localtime(ts))))
 
-        tstamps = []
-        for item in range(0, len(data)):
-            ts = int(data[item][0]/1000)
-            tstamps.append(str(time.strftime("%b %d %H:%M", time.localtime(ts))))
+                mc_data =[]
+                for item in range(0, len(data)):
+                    mc_data.append((data[item][1])/1000000000)
 
-        mc_data =[]
-        for item in range(0, len(data)):
-            mc_data.append((data[item][1])/1000000000)
+                qc = QuickChart()
+                qc.width = 1500
+                qc.height = 900
 
-        qc = QuickChart()
-        qc.width = 1500
-        qc.height = 900
-
-        # Config can be set as a string or as a nested dict
-        qc.config = """{
-            type: 'line',
-            data: {
-                labels: """ + str(tstamps[0::2]) + """,
-                datasets: [
-                {
-                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                    borderColor: 'rgb(255, 99, 132)',
-                    data: """ + str(mc_data[0::2]) + """,
-                    label: '""" + str(token_name) + """ Market Cap in Billions (Last 7 days)',
-                    fill: false,
-                },
-                ],
-            },
-            options: {
-                scales: {
-                xAxes: [
-                    {
-                    ticks: {
-                        autoSkip: false,
-                        maxRotation: 90,
+                # Config can be set as a string or as a nested dict
+                qc.config = """{
+                    type: 'line',
+                    data: {
+                        labels: """ + str(tstamps[0::2]) + """,
+                        datasets: [
+                        {
+                            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                            borderColor: 'rgb(255, 99, 132)',
+                            data: """ + str(mc_data[0::2]) + """,
+                            label: '""" + str(token_name) + """ Market Cap in Billions (Last 7 days)',
+                            fill: false,
+                        },
+                        ],
                     },
+                    options: {
+                        scales: {
+                        xAxes: [
+                            {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 90,
+                            },
+                            },
+                        ],
+                        },
+                        title: {
+                        text: 'fill: false',
+                        display: false,
+                        },
                     },
-                ],
-                },
-                title: {
-                text: 'fill: false',
-                display: false,
-                },
-            },
-        }"""
+                }"""
 
-        bot.send_photo(
-            msg.chat.id,
-            qc.get_url(),
-            caption=text_to_send,
-            parse_mode='markdown',
-            reply_to_message_id=msg.id
-        )
+                bot.send_photo(
+                    msg.chat.id,
+                    qc.get_url(),
+                    caption=text_to_send,
+                    parse_mode='markdown',
+                    reply_to_message_id=msg.id
+                )
 
-    except:
-        bot.send_message(msg.chat.id, '*❌ This currency is not supported or either it is wrong!*', parse_mode='markdown', reply_to_message_id=msg.id)
+        except:
+            bot.send_message(msg.chat.id, '*❌ This currency is not supported or either it is wrong!*', parse_mode='markdown', reply_to_message_id=msg.id)
 
 @server.route('/' + TOKEN, methods=['POST'])
 def getMessage():
