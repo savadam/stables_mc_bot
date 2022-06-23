@@ -1,3 +1,5 @@
 pyTelegramBotAPI
-requests
 Flask
+Gunicorn
+requests
+quickchart.io
