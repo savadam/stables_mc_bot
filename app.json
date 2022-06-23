@@ -7,6 +7,10 @@
         "API_TOKEN" : {
             "description": "Your telegram bot token which you can get from https://t.me/BotFather, Example : 5093659262:AAHoxxxxxxxxxxxxxxxx",
             "required": true
+        },
+        "APP_NAME" : {
+            "description": "Your Heroku app-name, Enter same value as the field above 'Choose A Region' Option",
+            "required": true
         }
     }
 }
