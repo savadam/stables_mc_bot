@@ -35,7 +35,7 @@ def home():
                 "MC Change in 24hr(%): " + human_format(data['market_data']['market_cap_change_percentage_24h']) + '%\n'    
             telegram_bot.send_message(chat_id=telebot_chat_id, text=output_string)
 
-    schedule.every().day.at("07:15").do(task)
+    schedule.every().day.at("07:18").do(task)
 
     while True:
         schedule.run_pending()
